@@ -1,0 +1,42 @@
+name: Sync photos from Google Drive
+
+# อัปเดตรูป/หมวดหมู่จาก Google Drive เข้าเว็บอัตโนมัติ
+on:
+  workflow_dispatch:          # กดสั่ง sync เองได้จากแท็บ Actions
+  schedule:
+    - cron: "0 */6 * * *"     # อัตโนมัติทุก 6 ชั่วโมง
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-drive
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: ติดตั้ง Pillow
+        run: pip install --quiet Pillow
+
+      - name: ดึงรูป + สร้าง manifest จาก Drive
+        run: python tools/build_manifest.py
+
+      - name: บันทึกการเปลี่ยนแปลง (ถ้ามี)
+        run: |
+          git config user.name  "shine-sync-bot"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add photos/
+          if git diff --staged --quiet; then
+            echo "ไม่มีรูปเปลี่ยนแปลง"
+          else
+            git commit -m "auto: sync photos from Google Drive"
+            git push
+          fi

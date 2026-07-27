@@ -1,0 +1,6 @@
+# ไฟล์ต้นฉบับ / ชั่วคราว — ไม่ต้องขึ้น GitHub
+*.zip
+profile_photographer/
+.DS_Store
+Thumbs.db
+node_modules/
