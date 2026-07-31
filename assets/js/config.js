@@ -11,7 +11,7 @@ window.GALLERY_CONFIG = {
   /* ช่องทางติดต่อ (เว้นว่างไว้ = ไม่แสดง) */
   contact: {
     line:      "",   // เช่น "@studioo"
-    instagram: "",   // เช่น "studioo.photo"
+    instagram: "shine_shot_studio",
     facebook:  "",   // เช่น "studioophoto"
     email:     "",   // เช่น "hello@studioo.com"
     phone:     "",   // เช่น "08x-xxx-xxxx"
@@ -28,8 +28,14 @@ window.GALLERY_CONFIG = {
   /* ป้ายกำกับรูปที่วางไว้ในโฟลเดอร์หลักตรง ๆ (ไม่ได้อยู่ในโฟลเดอร์ย่อย) */
   rootCategoryLabel: "อื่น ๆ",
 
+  /* ---------- หน้าปก Hero (รูปเด่น + ข้อความแนะนำสั้นๆ) ---------- */
+  showHero: true,
+  heroText: "รับถ่ายภาพรับปริญญา พรีเวดดิ้ง และภาพบุคคล — ผลงานจริงจากลูกค้า",
+
   /* ---------- ตัวเลือกอื่น ---------- */
-  allowDownload: true,   // ให้กดดาวน์โหลดรูปจากหน้าดูภาพใหญ่ได้ไหม
-  columnGap: 16,         // ระยะห่างระหว่างรูป (px)
-  cacheMinutes: 1,       // จำรายการจาก Drive ไว้กี่นาที (รูปใหม่ขึ้นภายใน ~นาทีนี้)
+  allowDownload: true,     // ให้กดดาวน์โหลดรูปจากหน้าดูภาพใหญ่ได้ไหม
+  enableFavorites: true,   // เปิดปุ่ม "เลือกรูปโปรด" ให้ลูกค้ากดคัดรูปที่ชอบ
+  enableContactFab: true,  // เปิดปุ่มติดต่อลอยมุมจอ (ใช้ข้อมูลจาก contact ด้านบน)
+  columnGap: 16,           // ระยะห่างระหว่างรูป (px)
+  cacheMinutes: 1,         // จำรายการจาก Drive ไว้กี่นาที (รูปใหม่ขึ้นภายใน ~นาทีนี้)
 };

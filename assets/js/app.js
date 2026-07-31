@@ -111,6 +111,88 @@
     return imgs;
   }
 
+  /* ---------- favorites (ลูกค้าเลือกรูปที่ชอบ, เก็บใน localStorage) ---------- */
+  const FAV_KEY = "gallery_favorites_v1";
+  const FAVORITES = new Map(); // id -> {id, name, thumb}
+  try {
+    (JSON.parse(localStorage.getItem(FAV_KEY) || "[]")).forEach((it) => FAVORITES.set(it.id, it));
+  } catch (_) {}
+
+  function saveFavorites() {
+    try { localStorage.setItem(FAV_KEY, JSON.stringify([...FAVORITES.values()])); } catch (_) {}
+  }
+
+  function setFavClass(id, on) {
+    document.querySelectorAll(`.card__fav[data-id="${id}"]`).forEach((el) => el.classList.toggle("is-fav", on));
+    if (lb.fav && lb.fav.dataset.id === id) lb.fav.classList.toggle("is-fav", on);
+  }
+
+  function toggleFavorite(id, im) {
+    if (FAVORITES.has(id)) FAVORITES.delete(id);
+    else if (im) FAVORITES.set(id, { id, name: im.name, thumb: im.thumb });
+    saveFavorites();
+    setFavClass(id, FAVORITES.has(id));
+    renderFavPanel();
+  }
+
+  function renderFavPanel() {
+    const n = FAVORITES.size;
+    const badge = $("#favBadge");
+    if (badge) { badge.textContent = n; badge.hidden = n === 0; }
+    $("#favTrigger")?.classList.toggle("has-items", n > 0);
+    const countEl = $("#favCount");
+    if (countEl) countEl.textContent = `(${n})`;
+    const list = $("#favList");
+    if (!list) return;
+    if (!n) {
+      list.innerHTML = `<p class="favpanel__empty">ยังไม่ได้เลือกรูปไว้เลย<br>กดไอคอนหัวใจที่มุมรูปเพื่อบันทึก</p>`;
+      return;
+    }
+    list.innerHTML = [...FAVORITES.values()].map((it) => `
+      <div class="favitem">
+        <img src="${it.thumb}" alt="" loading="lazy">
+        <span class="favitem__name">${esc(it.name)}</span>
+        <button type="button" class="favitem__remove" data-id="${it.id}" aria-label="เอาออก">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>`).join("");
+    list.querySelectorAll(".favitem__remove").forEach((b) => b.addEventListener("click", () => {
+      FAVORITES.delete(b.dataset.id); saveFavorites();
+      setFavClass(b.dataset.id, false);
+      renderFavPanel();
+    }));
+  }
+
+  function bindFavorites() {
+    const trig = $("#favTrigger"), panel = $("#favPanel"), backdrop = $("#favBackdrop"), closeBtn = $("#favClose");
+    if (CFG.enableFavorites === false || !trig) return;
+    trig.hidden = false;
+    const open = () => { panel.classList.add("open"); renderFavPanel(); };
+    const close = () => panel.classList.remove("open");
+    trig.addEventListener("click", open);
+    closeBtn?.addEventListener("click", close);
+    backdrop?.addEventListener("click", close);
+    $("#favCopy")?.addEventListener("click", async (e) => {
+      const names = [...FAVORITES.values()].map((it) => it.name).join("\n");
+      if (!names) return;
+      const btn = e.currentTarget;
+      const old = btn.textContent;
+      try {
+        await navigator.clipboard.writeText(names);
+        btn.textContent = "คัดลอกแล้ว ✓"; btn.classList.add("copied");
+      } catch (_) {
+        prompt("คัดลอกรายชื่อรูปด้วยตนเอง (Ctrl+C แล้วปิดหน้าต่างนี้):", names);
+      }
+      setTimeout(() => { btn.textContent = old; btn.classList.remove("copied"); }, 1800);
+    });
+    $("#favClear")?.addEventListener("click", () => {
+      if (!FAVORITES.size || !confirm("ล้างรูปที่เลือกไว้ทั้งหมด?")) return;
+      [...FAVORITES.keys()].forEach((id) => setFavClass(id, false));
+      FAVORITES.clear(); saveFavorites(); renderFavPanel();
+    });
+    renderFavPanel();
+  }
+
   /* ---------- render ---------- */
   function renderPills() {
     const bar = $("#cats");
@@ -143,7 +225,11 @@
         this.active++;
         const src = img.dataset.src;
         let tried = 0;
-        const finish = () => { img.dataset.done = "1"; this.active--; this.pump(g); };
+        const finish = () => {
+          img.dataset.done = "1";
+          img.closest(".card")?.classList.remove("is-loading");
+          this.active--; this.pump(g);
+        };
         img.onload = () => { img.classList.add("loaded"); finish(); };
         img.onerror = () => {
           tried++;
@@ -156,6 +242,8 @@
     },
   };
 
+  const HEART_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6c-1.7-1.7-4.4-1.7-6.1 0L12 7.3 9.3 4.6c-1.7-1.7-4.4-1.7-6.1 0-1.7 1.7-1.7 4.4 0 6.1L12 19l8.8-8.3c1.7-1.7 1.7-4.4 0-6.1z"/></svg>`;
+
   function renderGrid() {
     const grid = $("#grid");
     view = currentImages();
@@ -164,16 +252,26 @@
       updateCount();
       return;
     }
+    const showFav = CFG.enableFavorites !== false;
     grid.innerHTML = view.map((im, i) => {
       const ar = im.w && im.h ? ` style="aspect-ratio:${im.w}/${im.h}"` : "";
-      return `<figure class="card" data-i="${i}">
+      const favBtn = showFav
+        ? `<button type="button" class="card__fav${FAVORITES.has(im.id) ? " is-fav" : ""}" data-id="${im.id}" aria-label="เลือกรูปนี้ไว้">${HEART_SVG}</button>`
+        : "";
+      return `<figure class="card is-loading" data-i="${i}">
         <img${ar} decoding="async" alt="${esc(im.name)}" data-src="${im.thumb}" data-full="${im.full}">
+        ${favBtn}
         <figcaption class="card__name">${esc(im.name)}</figcaption>
       </figure>`;
     }).join("");
-    grid.querySelectorAll(".card").forEach((c) =>
-      c.addEventListener("click", () => openLightbox(+c.dataset.i))
-    );
+    grid.querySelectorAll(".card").forEach((c) => {
+      c.addEventListener("click", () => openLightbox(+c.dataset.i));
+      const favBtn = c.querySelector(".card__fav");
+      favBtn?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggleFavorite(favBtn.dataset.id, view[+c.dataset.i]);
+      });
+    });
     LOADER.load(grid.querySelectorAll(".card img"));
     updateCount();
   }
@@ -187,7 +285,7 @@
   let lbIndex = 0;
   const lb = {
     el: $("#lb"), img: $("#lbImg"), cap: $("#lbCap"),
-    count: $("#lbCount"), dl: $("#lbDl"), spin: $("#lbSpin"),
+    count: $("#lbCount"), dl: $("#lbDl"), spin: $("#lbSpin"), fav: $("#lbFav"),
   };
 
   function openLightbox(i) {
@@ -213,12 +311,26 @@
       lb.dl.href = im.full;
       lb.dl.setAttribute("download", im.name + ".jpg");
     } else lb.dl.style.display = "none";
+
+    if (lb.fav) {
+      if (CFG.enableFavorites === false) {
+        lb.fav.style.display = "none";
+      } else {
+        lb.fav.style.display = "inline-flex";
+        lb.fav.dataset.id = im.id;
+        lb.fav.classList.toggle("is-fav", FAVORITES.has(im.id));
+      }
+    }
   }
 
   function bindLightbox() {
     $("#lbClose").onclick = closeLightbox;
     $("#lbPrev").onclick  = () => step(-1);
     $("#lbNext").onclick  = () => step(1);
+    lb.fav?.addEventListener("click", () => {
+      const im = view[lbIndex]; if (!im) return;
+      toggleFavorite(im.id, im);
+    });
     lb.el.addEventListener("click", (e) => { if (e.target === lb.el) closeLightbox(); });
     document.addEventListener("keydown", (e) => {
       if (!lb.el.classList.contains("open")) return;
@@ -272,6 +384,12 @@
       }
     }
 
+    const links = buildContactLinks();
+    $("#footLinks").innerHTML = links.map(([t, h]) => `<a href="${h}" target="_blank" rel="noopener">${esc(t)}</a>`).join("");
+    $("#year").textContent = new Date().getFullYear();
+  }
+
+  function buildContactLinks() {
     const c = CFG.contact || {};
     const links = [];
     if (c.line)      links.push(["LINE", c.line.startsWith("http") ? c.line : `https://line.me/ti/p/~${c.line.replace(/^@/, "")}`]);
@@ -279,8 +397,33 @@
     if (c.facebook)  links.push(["Facebook", c.facebook.startsWith("http") ? c.facebook : `https://facebook.com/${c.facebook}`]);
     if (c.email)     links.push(["Email", `mailto:${c.email}`]);
     if (c.phone)     links.push(["โทร", `tel:${c.phone.replace(/[^+\d]/g, "")}`]);
-    $("#footLinks").innerHTML = links.map(([t, h]) => `<a href="${h}" target="_blank" rel="noopener">${t}</a>`).join("");
-    $("#year").textContent = new Date().getFullYear();
+    return links;
+  }
+
+  /* ---------- ปุ่มติดต่อลอย ---------- */
+  function bindContactFab() {
+    const wrap = $("#contactFab"), menu = $("#contactMenu"), trig = $("#contactTrigger");
+    if (!wrap || CFG.enableContactFab === false) return;
+    const links = buildContactLinks();
+    if (!links.length) return; // ไม่มีข้อมูลติดต่อ ไม่ต้องโชว์ปุ่ม
+    menu.innerHTML = links.map(([t, h]) => `<a href="${h}" target="_blank" rel="noopener">${esc(t)}</a>`).join("");
+    wrap.hidden = false;
+    trig.addEventListener("click", (e) => { e.stopPropagation(); wrap.classList.toggle("open"); });
+    document.addEventListener("click", (e) => { if (!wrap.contains(e.target)) wrap.classList.remove("open"); });
+  }
+
+  /* ---------- หน้าปก Hero ---------- */
+  function setupHero() {
+    const hero = $("#hero");
+    if (!hero || CFG.showHero === false) return;
+    const first = ALL()[0];
+    if (!first) return;
+    const img = $("#heroImg"), txt = $("#heroText");
+    img.onload  = () => img.classList.add("loaded");
+    img.onerror = () => { hero.hidden = true; };
+    img.src = first.full;
+    txt.textContent = CFG.heroText || `${CFG.brandName || ""} ${CFG.tagline || ""}`.trim();
+    hero.hidden = false;
   }
 
   /* ---------- boot ---------- */
@@ -292,6 +435,8 @@
     fillBrand();
     bindLightbox();
     bindSearch();
+    bindFavorites();
+    bindContactFab();
     showState(`<div class="spinner"></div><p>กำลังโหลดรูป…</p>`);
 
     try {
@@ -310,6 +455,7 @@
           return;
         }
       }
+      setupHero();
       renderPills();
       renderGrid();
     } catch (err) {
