@@ -1,44 +1,61 @@
-# shine · SHOT STUDIO — เว็บพอร์ตโฟลิโอช่างภาพ
+# SHINE SHOT studio — เว็บพอร์ตโฟลิโอช่างภาพ
 
 เว็บแกลเลอรีสไตล์แฟชั่น/เอดิทอเรียล (ชมพู-ดำ-ขาว) สำหรับส่งให้ลูกค้าดูผลงาน
-รูป + หมวดหมู่มาจาก **Google Drive** โดยตรง — โฟลเดอร์ย่อยใน Drive = หมวดหมู่บนเว็บ
+รูป + หมวดหมู่มาจาก **Google Drive โดยตรงแบบสด (live)** — โฟลเดอร์ย่อยใน Drive = หมวดหมู่บนเว็บ
 เปิดได้ทุก device (มือถือ / คอม / iPad) โฮสต์ฟรีบน **GitHub Pages**
 
-**จุดเด่น:** ไม่ต้องใช้ Google API key เลย · รูปในกริดโหลดจากเว็บตัวเอง (เร็ว ไม่โดน Drive จำกัด) · อัปเดตอัตโนมัติผ่าน GitHub Action
+**จุดเด่น:** ทุกภาพลิงก์จาก Drive จริง ไม่มีการดาวน์โหลดมาเก็บซ้ำ · เพิ่มรูป/โฟลเดอร์ใหม่ใน Drive แล้วขึ้นเองทันทีตอนรีเฟรชเว็บ ไม่ต้องแตะโค้ด
 
 ---
 
 ## 🔁 ระบบทำงานยังไง
 
 ```
-โฟลเดอร์ Google Drive (แชร์สาธารณะ)
-        │   ← สคริปต์ tools/build_manifest.py อ่านรายชื่อโฟลเดอร์+รูป
-        ▼
-photos/manifest.json  +  photos/thumb/*.jpg   ← เก็บไว้ใน repo
+คนเปิดเว็บ (มือถือ/คอม)
         │
         ▼
-index.html แสดงเป็นแกลเลอรี  (รูปเต็มตอนกดดู ดึงจาก Drive ทีละรูป)
+เบราว์เซอร์เรียก Google Drive API (ผ่าน apiKey ใน config.js)
+        │   • ขอรายชื่อโฟลเดอร์ย่อยใต้ driveFolderId  → กลายเป็น "หมวดหมู่"
+        │   • ขอรายชื่อรูปในแต่ละโฟลเดอร์
+        ▼
+แสดงผลเป็นกริด masonry — รูปทุกใบ<b>ลิงก์ตรง</b>จาก drive.google.com / lh3.googleusercontent.com
 ```
 
+- **ไม่มีรูปเก็บอยู่ใน GitHub repo เลย** — ทุกอย่างอ่านสดจาก Drive ทุกครั้งที่เปิดเว็บ
 - **โฟลเดอร์ย่อยใน Drive** → กลายเป็น "หมวดหมู่" อัตโนมัติ (เรียงตามชื่อ ก-ฮ / A-Z)
-- โฟลเดอร์ที่ยังไม่มีรูป จะไม่ขึ้นบนเว็บ (พอใส่รูปแล้ว sync ใหม่ก็ขึ้นเอง)
+- โฟลเดอร์ที่ยังไม่มีรูป จะไม่ขึ้นบนเว็บ (พอใส่รูปแล้วรีเฟรชก็ขึ้นเอง ไม่ต้องรอ)
+- เว็บจำผลลัพธ์ไว้ในเบราว์เซอร์ผู้เข้าชมสั้นๆ (`cacheMinutes` ใน config.js ค่าเริ่มต้น 1 นาที) เพื่อลดการเรียก API ซ้ำถี่เกินไป
 
 ---
 
 ## ⚙️ แก้ค่าต่าง ๆ — ที่ไฟล์ `assets/js/config.js`
 
 ```js
-brandName: "shine",
-tagline:   "SHOT STUDIO",
+brandName: "SHINE SHOT",
+tagline:   "studio",
 logo:      "assets/logo.png",     // โลโก้ (ดูวิธีใส่ด้านล่าง)
 contact: { line:"", instagram:"", facebook:"", email:"", phone:"" },
-driveFolderId: "https://drive.google.com/drive/folders/xxxxx",  // โฟลเดอร์หลัก
-apiKey: "",                       // เว้นว่าง (ไม่ต้องใช้)
+driveFolderId: "https://drive.google.com/drive/folders/xxxxx",  // โฟลเดอร์หลักใน Drive
+apiKey: "AIzaSy...",              // Google API key (ดูวิธีขอด้านล่าง)
 ```
 
 ### 🖼️ ใส่โลโก้ร้าน
 เอาไฟล์โลโก้มาตั้งชื่อ **`logo.png`** วางไว้ในโฟลเดอร์ **`assets/`**
-(แนะนำเป็น PNG พื้นหลังโปร่ง จัตุรัส) — ถ้าไม่มี เว็บจะใช้ตัวหนังสือ "shine" แทน
+(แนะนำเป็น PNG พื้นหลังโปร่ง จัตุรัส) — ถ้าไม่มี เว็บจะใช้ตัวหนังสือแทน
+
+---
+
+## 🌤️ ตั้งค่า Google Drive + API key (ทำครั้งเดียว)
+
+1. คลิกขวาโฟลเดอร์หลักใน Drive → **แชร์** → เปลี่ยนเป็น **"ทุกคนที่มีลิงก์" (Anyone with the link)** สิทธิ์ **ผู้ดู**
+2. ก๊อปลิงก์โฟลเดอร์หลักมาวางในช่อง `driveFolderId` ใน `config.js`
+3. ขอ API key ฟรีที่ https://console.cloud.google.com/
+   - สร้าง/เลือก Project → เปิดใช้ **Google Drive API** (Library → ค้นหา → Enable)
+   - **Credentials → Create Credentials → API key** → ก๊อป key มาใส่ในช่อง `apiKey`
+4. **สำคัญ — จำกัดสิทธิ์ key** (เพราะ config.js เป็นไฟล์ public):
+   - คลิก key ที่สร้าง → **Application restrictions → Websites** → ใส่โดเมนเว็บของคุณ เช่น `https://ชื่อคุณ.github.io/*` และ `http://localhost:8080/*`
+   - **API restrictions → Restrict key** → เลือกเฉพาะ **Google Drive API**
+5. เอารูปไปใส่ในโฟลเดอร์ย่อย (แต่ละโฟลเดอร์ = 1 หมวด) เช่น `บุคคล`, `รับปริญญา`, `กลุ่ม` … — เพิ่มรูป/โฟลเดอร์ใหม่เมื่อไหร่ก็ขึ้นเองตอนรีเฟรชเว็บ
 
 ---
 
@@ -47,63 +64,41 @@ apiKey: "",                       // เว้นว่าง (ไม่ต้�
 ต้องเปิดผ่านเว็บเซิร์ฟเวอร์ (ห้ามดับเบิลคลิก `index.html` ตรง ๆ)
 
 ```bash
-cd shine-gallery
 python -m http.server 8080
 ```
 เปิด **http://localhost:8080**
 
----
-
-## 🔄 อัปเดตรูปหลังเพิ่ม/ลบใน Drive
-
-**วิธีที่ 1 — อัตโนมัติ (แนะนำ):** มี GitHub Action ตั้งไว้แล้ว จะ sync ให้เอง**ทุก 6 ชั่วโมง**
-หรือกดสั่งเดี๋ยวนั้นได้ที่แท็บ **Actions → Sync photos from Google Drive → Run workflow**
-
-**วิธีที่ 2 — สั่งเองบนเครื่อง:**
+**เปิดจากมือถือ/แท็บเล็ตในวง Wi-Fi เดียวกัน:** หา IP เครื่องคอม (Windows: `ipconfig`) แล้วรัน
 ```bash
-pip install Pillow          # ครั้งแรกครั้งเดียว
-python tools/build_manifest.py
+python -m http.server 8080 --bind 0.0.0.0
 ```
-แล้ว commit/push ไฟล์ในโฟลเดอร์ `photos/` ขึ้น GitHub
-
----
-
-## 🌤️ ตั้งค่า Google Drive (ทำครั้งเดียว)
-
-1. คลิกขวาโฟลเดอร์หลักใน Drive → **แชร์** → เปลี่ยนเป็น **"ทุกคนที่มีลิงก์" (Anyone with the link)** สิทธิ์ **ผู้ดู**
-   > โฟลเดอร์ย่อยข้างในจะถูกแชร์ตามอัตโนมัติ
-2. ก๊อปลิงก์โฟลเดอร์หลักมาวางในช่อง `driveFolderId` ใน `config.js`
-3. เอารูปไปใส่ในโฟลเดอร์ย่อย (แต่ละโฟลเดอร์ = 1 หมวด) เช่น `บุคคล`, `รับปริญญา`, `กลุ่ม` …
-4. รัน sync (ดูหัวข้อด้านบน)
+เปิด `http://<IP เครื่องคอม>:8080` บนมือถือ (ต้องเปิด Windows Firewall ให้ port 8080 ด้วยถ้าเข้าไม่ได้)
 
 ---
 
 ## 🚀 ขึ้น GitHub Pages (ฟรี)
 
 1. สร้าง repo ใหม่บน GitHub → อัปโหลดไฟล์ทั้งหมดในโฟลเดอร์นี้
-2. **Settings → Pages** → Source: **Deploy from a branch** → Branch `main` / `/ (root)` → **Save**
+2. **Settings → Pages** → Source: **Deploy from a branch** → Branch `master`/`main` / `/ (root)` → **Save**
 3. รอ ~1 นาที ได้ลิงก์ `https://ชื่อคุณ.github.io/ชื่อ-repo/` เอาไว้ส่งลูกค้า
-4. **เปิดสิทธิ์ให้ Action อัปเดตรูปเองได้:** **Settings → Actions → General → Workflow permissions** → เลือก **Read and write permissions** → Save
+4. อย่าลืมกลับไปทำข้อ 4 ในหัวข้อด้านบน (จำกัดโดเมนของ API key ให้ตรงกับลิงก์จริง)
 
 ---
 
 ## 🗂️ โครงไฟล์
 
 ```
-shine-gallery/
+shine-shot-studio/
 ├─ index.html
 ├─ assets/
 │  ├─ css/style.css
-│  ├─ js/config.js         ← แก้ตรงนี้ (แบรนด์ / ลิงก์ Drive / ติดต่อ)
-│  ├─ js/app.js
-│  └─ logo.png             ← วางโลโก้ตรงนี้
-├─ photos/
-│  ├─ manifest.json        (สร้างอัตโนมัติ)
-│  └─ thumb/*.jpg          (รูปย่อ สร้างอัตโนมัติ)
-├─ tools/build_manifest.py (สคริปต์ sync จาก Drive)
-├─ .github/workflows/sync-drive.yml  (อัปเดตอัตโนมัติ)
+│  ├─ js/config.js         ← แก้ตรงนี้ (แบรนด์ / Drive / API key / ติดต่อ)
+│  ├─ js/app.js            (เครื่องยนต์: เรียก Drive API, masonry, lightbox)
+│  └─ logo.png             ← วางโลโก้ตรงนี้ (ไม่บังคับ)
 └─ .nojekyll · .gitignore · README.md
 ```
+
+ไม่มีโฟลเดอร์เก็บรูปในนี้เลย เพราะทุกภาพลิงก์จาก Drive สด 100%
 
 ---
 
@@ -111,5 +106,6 @@ shine-gallery/
 
 - **อยากคุมลำดับหมวด:** ตั้งชื่อโฟลเดอร์นำหน้าด้วยเลข เช่น `01 รับปริญญา`, `02 บุคคล` (เว็บเรียงตามชื่อ)
 - **ปิดปุ่มดาวน์โหลด** ในหน้าดูภาพใหญ่: ตั้ง `allowDownload: false` ใน `config.js`
-- **รูปเต็มโหลดช้า/ไม่ขึ้นบางที:** เป็นข้อจำกัดของ Drive (รูปเต็มดึงสดจาก Drive) — ถ้าอยากให้รูปเต็มเก็บในเว็บด้วยเพื่อความเสถียรสูงสุด แจ้งได้ ปรับสคริปต์ให้ดาวน์โหลดไฟล์เต็มมาเก็บได้เลย
+- **รูปโหลดช้าตอนคนดูพร้อมกันเยอะๆ:** เป็นข้อจำกัดของการลิงก์สดจาก Drive — เว็บมีตัวคุมการโหลดทีละไม่เกิน 5 รูปอยู่แล้ว (`assets/js/app.js` ตัวแปร `LOADER`) เพื่อลดปัญหานี้
 - **เปลี่ยนสีธีม:** แก้ตัวแปรสีด้านบนสุดของ `assets/css/style.css` (`--pink`, `--ink` ฯลฯ)
+- **ลืม API key เดิม/อยากเปลี่ยน:** สร้าง key ใหม่ใน Google Cloud Console แล้วแก้ค่าใน `config.js` ได้เลย ไม่ต้องรอ deploy ใหม่ (แค่ commit/push ไฟล์เดิม)
