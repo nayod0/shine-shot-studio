@@ -412,17 +412,11 @@
     document.addEventListener("click", (e) => { if (!wrap.contains(e.target)) wrap.classList.remove("open"); });
   }
 
-  /* ---------- หน้าปก Hero ---------- */
+  /* ---------- หน้าปก Hero (พื้นสีล้วน ไม่ใช้รูป) ---------- */
   function setupHero() {
     const hero = $("#hero");
     if (!hero || CFG.showHero === false) return;
-    const first = ALL()[0];
-    if (!first) return;
-    const img = $("#heroImg"), txt = $("#heroText");
-    img.onload  = () => img.classList.add("loaded");
-    img.onerror = () => { hero.hidden = true; };
-    img.src = first.full;
-    txt.textContent = CFG.heroText || `${CFG.brandName || ""} ${CFG.tagline || ""}`.trim();
+    $("#heroText").textContent = CFG.heroText || `${CFG.brandName || ""} ${CFG.tagline || ""}`.trim();
     hero.hidden = false;
   }
 
@@ -437,6 +431,7 @@
     bindSearch();
     bindFavorites();
     bindContactFab();
+    setupHero();
     showState(`<div class="spinner"></div><p>กำลังโหลดรูป…</p>`);
 
     try {
@@ -455,7 +450,6 @@
           return;
         }
       }
-      setupHero();
       renderPills();
       renderGrid();
     } catch (err) {
